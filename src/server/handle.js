@@ -1,12 +1,14 @@
 import { emailFromIapJwt } from './iapAuth.js';
 import { getDb, CACHE_COLLECTION } from './firestoreClient.js';
 
-async function readStartupCache(email, cacheTtlMs) {
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+async function readStartupCache(email) {
   try {
     const doc = await getDb().collection(CACHE_COLLECTION).doc(email).get();
     if (!doc.exists) return null;
     const data = doc.data();
-    if (!data.cached_at || Date.now() - data.cached_at > cacheTtlMs)
+    if (!data.cached_at || Date.now() - data.cached_at > CACHE_TTL_MS)
       return null;
     return {
       profile: data.profile ?? null,
@@ -23,19 +25,17 @@ async function readStartupCache(email, cacheTtlMs) {
 // which tips the response over the limit and causes a 502.
 // Removing it here is safe: the <link rel="modulepreload"> tags in the HTML <head>
 // still provide equivalent preloading behaviour in the browser.
-export function createHandle({ cacheTtlMs = 4 * 60 * 60 * 1000 } = {}) {
-  return async function handle({ event, resolve }) {
-    const iapJwt = event.request.headers.get('x-goog-iap-jwt-assertion');
-    if (iapJwt) {
-      const email = emailFromIapJwt(iapJwt);
-      if (email) {
-        event.locals.cachedStartup = await readStartupCache(email, cacheTtlMs);
-        event.locals.userEmail = email;
-      }
+export async function handle({ event, resolve }) {
+  const iapJwt = event.request.headers.get('x-goog-iap-jwt-assertion');
+  if (iapJwt) {
+    const email = emailFromIapJwt(iapJwt);
+    if (email) {
+      event.locals.cachedStartup = await readStartupCache(email);
+      event.locals.userEmail = email;
     }
+  }
 
-    const response = await resolve(event);
-    response.headers.delete('link');
-    return response;
-  };
+  const response = await resolve(event);
+  response.headers.delete('link');
+  return response;
 }
