@@ -5,9 +5,12 @@
   "exports": {
     "./server/firestoreClient": "./src/server/firestoreClient.js",
     "./server/iapAuth": "./src/server/iapAuth.js",
-    "./server/handle": "./src/server/handle.js"
+    "./server/handle": "./src/server/handle.js",
+    "./routes/session-check": "./src/routes/session-check.js",
+    "./routes/cache-profile": "./src/routes/cache-profile.js"
   },
   "peerDependencies": {
-    "@google-cloud/firestore": ">=8"
+    "@google-cloud/firestore": ">=8",
+    "@sveltejs/kit": ">=2"
   }
 }
