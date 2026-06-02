@@ -1,6 +1,6 @@
 {
   "name": "@agiledata/shared",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "exports": {
     "./server/firestoreClient": "./src/server/firestoreClient.js",
@@ -12,6 +12,6 @@
   },
   "peerDependencies": {
     "@google-cloud/firestore": ">=8",
-    "@sveltejs/kit": ">=2"
+    "@sveltejs/kit": ">=1"
   }
 }
