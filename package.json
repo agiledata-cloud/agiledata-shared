@@ -1,0 +1,13 @@
+{
+  "name": "@agiledata/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./server/firestoreClient": "./src/server/firestoreClient.js",
+    "./server/iapAuth": "./src/server/iapAuth.js",
+    "./server/handle": "./src/server/handle.js"
+  },
+  "peerDependencies": {
+    "@google-cloud/firestore": ">=8"
+  }
+}
