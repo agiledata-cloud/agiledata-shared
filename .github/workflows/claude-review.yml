@@ -1,0 +1,75 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: |
+            You are reviewing a PR to main in AgileData.io Shared Library.
+
+            CONTEXT:
+            - This is a shared TypeScript/JavaScript library used by AgileData products
+            - Breaking changes to exported interfaces affect all consuming repos
+            - Review guidelines are in CLAUDE.md if present
+
+            YOUR TASK:
+            1. Read CLAUDE.md if it exists to understand project-specific review standards
+            2. Review the PR changes and make your approval decision:
+
+            APPROVE if:
+            - No security vulnerabilities (secrets, injection, auth bypass)
+            - No unintentional breaking changes to exported interfaces
+            - No hardcoded credentials or project IDs
+            - Code quality looks clean
+
+            REQUEST CHANGES if you find:
+            - Hardcoded secrets, API keys, or tokens
+            - Security vulnerabilities
+            - Breaking changes to exported interfaces without a clear version bump intent
+            - TypeScript type errors
+
+            COMMENT (without blocking) for:
+            - Code quality suggestions
+            - Missing error handling
+            - Dead code or debug statements
+
+            3. Submit your review via gh CLI:
+               - If approving:
+                 gh pr review ${{ github.event.pull_request.number }} --approve \
+                   --body "Your review summary"
+               - If blocking:
+                 gh pr review ${{ github.event.pull_request.number }} \
+                   --request-changes --body "Your concerns"
+               - If commenting:
+                 gh pr review ${{ github.event.pull_request.number }} --comment \
+                   --body "Your feedback"
+
+          claude_args: |
+            --allowedTools "Read(*)" "Glob(*)" "Grep(*)" "Bash(gh pr *)"
+            --max-turns 25
