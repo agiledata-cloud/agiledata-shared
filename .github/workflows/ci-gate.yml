@@ -52,8 +52,11 @@ jobs:
           import json, sys
           with open('/tmp/new-secrets.json') as f:
               new = json.load(f)
-          with open('.secrets.baseline') as f:
-              baseline = json.load(f)
+          try:
+              with open('.secrets.baseline') as f:
+                  baseline = json.load(f)
+          except FileNotFoundError:
+              baseline = {'results': {}}
 
           new_results = new.get('results', {})
           base_results = baseline.get('results', {})
