@@ -1,0 +1,103 @@
+name: CI Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies (high and critical)
+        run: npm audit --audit-level=high
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install detect-secrets
+        run: pip install detect-secrets
+
+      - name: Scan for new secrets
+        run: |
+          detect-secrets scan > /tmp/new-secrets.json
+          python3 << 'EOF'
+          import json, sys
+          with open('/tmp/new-secrets.json') as f:
+              new = json.load(f)
+          with open('.secrets.baseline') as f:
+              baseline = json.load(f)
+
+          new_results = new.get('results', {})
+          base_results = baseline.get('results', {})
+
+          failures = []
+          for filepath, findings in new_results.items():
+              base_hashes = {s['hashed_secret'] for s in base_results.get(filepath, [])}
+              for secret in findings:
+                  if secret['hashed_secret'] not in base_hashes:
+                      failures.append(f"  {filepath}:{secret['line_number']} ({secret['type']})")
+
+          if failures:
+              print("New potential secrets detected (not in approved baseline):")
+              for f in failures:
+                  print(f)
+              print("\nRun 'detect-secrets scan > .secrets.baseline' locally and commit the updated baseline.")
+              sys.exit(1)
+
+          approved = sum(len(v) for v in base_results.values())
+          print(f"Secret scan passed — {approved} approved baseline finding(s), no new secrets")
+          EOF
+
+  export-integrity:
+    name: Export Integrity Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Verify all package exports exist
+        run: |
+          node --input-type=module << 'EOF'
+          import { readFileSync, existsSync } from 'fs';
+          const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
+          const missing = Object.entries(pkg.exports).filter(([, path]) => !existsSync(path));
+          if (missing.length > 0) {
+            console.error('Missing export files:');
+            missing.forEach(([key, path]) => console.error(`  ${key} -> ${path}`));
+            process.exit(1);
+          }
+          console.log(`Export integrity OK — ${Object.keys(pkg.exports).length} exports verified`);
+          EOF
