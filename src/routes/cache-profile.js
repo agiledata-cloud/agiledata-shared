@@ -16,9 +16,12 @@ export async function POST({ request, locals }) {
     throw error(400, 'Invalid JSON');
   }
 
-  const { profile = null, tenancy = null, tenancies } = body || {};
-  const doc = { profile, tenancy, cached_at: Date.now() };
+  const { profile, tenancy, tenancies, personalisation } = body || {};
+  const doc = { cached_at: Date.now() };
+  if (profile !== undefined) doc.profile = profile;
+  if (tenancy !== undefined) doc.tenancy = tenancy;
   if (tenancies !== undefined) doc.tenancies = tenancies;
+  if (personalisation !== undefined) doc.personalisation = personalisation;
 
   try {
     await getDb()

@@ -14,6 +14,7 @@ async function readStartupCache(email) {
       profile: data.profile ?? null,
       tenancy: data.tenancy ?? null,
       tenancies: data.tenancies ?? null,
+      personalisation: data.personalisation ?? {},
     };
   } catch {
     return null;
