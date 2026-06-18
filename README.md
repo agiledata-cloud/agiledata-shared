@@ -75,6 +75,7 @@ if (browser) {
 2. In each consuming repo, update `package.json` to the new tag and run `npm install`.
 
 ## Peer dependencies
+<!-- no-op: test commit for PR approval review audit -->
 
 | Package | Required version |
 |---|---|
