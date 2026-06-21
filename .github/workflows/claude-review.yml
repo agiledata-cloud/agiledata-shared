@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - main
+      - master
 
 permissions:
   contents: read
@@ -32,7 +32,7 @@ jobs:
           track_progress: true
           use_sticky_comment: true
           prompt: |
-            You are reviewing a PR to main in AgileData.io Shared Library.
+            You are reviewing a PR from development into master in AgileData.io Shared Library.
 
             CONTEXT:
             - This is a shared TypeScript/JavaScript library used by AgileData products
