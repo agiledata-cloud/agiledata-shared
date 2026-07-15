@@ -1,6 +1,6 @@
 {
   "name": "@agiledata/shared",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "exports": {
     "./server/firestoreClient": "./src/server/firestoreClient.js",
