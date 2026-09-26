@@ -69,6 +69,27 @@ if (browser) {
 }
 ```
 
+An expired IAP session is renewed in a `/?gcp-iap-mode=DO_SESSION_REFRESH` popup. Browsers block popups opened without a user gesture, so the popup only opens while `navigator.userActivation.isActive`. Otherwise the module sets `sessionExpired` to `true` and the UI should offer a button that calls `refreshSessionFromGesture()` synchronously in its click handler:
+
+```js
+import {
+  refreshSessionFromGesture,
+  handleAuthFailure,
+} from '@agiledata/shared/browser/sessionCheck';
+
+// "Continue session" button; resolves true once renewed, false if the popup
+// was blocked or renewal timed out (fall back to a reload).
+const renewed = await refreshSessionFromGesture();
+
+// API layer, on a 401 or opaqueredirect response: renews at once after a
+// click, otherwise flags sessionExpired for the prompt.
+handleAuthFailure();
+```
+
+Renewal succeeds when the tenant landing page posts `{ type: 'iap-session-refreshed' }` on `BroadcastChannel('agiledata-iap-session')`, or when `/internal/session-check` passes while the popup is pending (probed every second, and once more at the 30 s timeout). `window.opener` is not relied on: `Cross-Origin-Opener-Policy: same-origin` severs it on the cross-site hop to the sign-in page. On success `sessionExpired` is set back to `false` and the renewal is broadcast so every open tab clears.
+
+Run the unit tests with `npm test` (Node 22+).
+
 ## Releasing a fix
 
 1. Commit and tag: `git tag v1.x.x && git push origin v1.x.x`
