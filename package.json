@@ -14,5 +14,12 @@
   "peerDependencies": {
     "@google-cloud/firestore": ">=8",
     "@sveltejs/kit": ">=1"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vitest": "^5.0.2"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }
