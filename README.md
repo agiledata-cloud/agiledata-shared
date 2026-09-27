@@ -69,7 +69,7 @@ if (browser) {
 }
 ```
 
-An expired IAP session is renewed in a `/?gcp-iap-mode=DO_SESSION_REFRESH` popup. Browsers block popups opened without a user gesture, so the popup only opens while `navigator.userActivation.isActive`. Otherwise the module sets `sessionExpired` to `true` and the UI should offer a button that calls `refreshSessionFromGesture()` synchronously in its click handler:
+An expired IAP session is renewed in a `/?gcp-iap-mode=DO_SESSION_REFRESH` popup. Browsers block popups opened without a user gesture, so `handleAuthFailure()`, the fetch wrapper and the background checks only open the popup while `navigator.userActivation.isActive` is `true`; `refreshSessionFromGesture()` also opens it when the browser does not support `navigator.userActivation`. Otherwise the module sets `sessionExpired` to `true` and the UI should offer a button that calls `refreshSessionFromGesture()` synchronously in its click handler:
 
 ```js
 import {
