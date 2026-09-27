@@ -125,6 +125,46 @@ describe('without user activation', () => {
     expect(open).not.toHaveBeenCalled();
     expect(store.value).toBe(true);
   });
+
+  it('does not open a popup from the gesture path and flags the store', async () => {
+    const open = vi.spyOn(window, 'open');
+    await init();
+
+    await expect(sessionCheck.refreshSessionFromGesture()).resolves.toBe(false);
+
+    expect(open).not.toHaveBeenCalled();
+    expect(store.value).toBe(true);
+  });
+});
+
+describe('without the userActivation API', () => {
+  beforeEach(() => {
+    delete window.navigator.userActivation;
+  });
+
+  it('opens the refresh popup from the gesture path', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(severedPopup());
+    await init();
+
+    sessionCheck.refreshSessionFromGesture();
+
+    expect(open).toHaveBeenCalledWith(
+      '/?gcp-iap-mode=DO_SESSION_REFRESH',
+      '_blank',
+      'width=500,height=600',
+    );
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it('refuses to open a popup on auth failure and flags the store', async () => {
+    const open = vi.spyOn(window, 'open');
+    await init();
+
+    await expect(sessionCheck.handleAuthFailure()).resolves.toBe(false);
+
+    expect(open).not.toHaveBeenCalled();
+    expect(store.value).toBe(true);
+  });
 });
 
 describe('with user activation', () => {

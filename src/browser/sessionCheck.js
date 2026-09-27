@@ -55,13 +55,13 @@ function markRenewed() {
   getChannel()?.postMessage({ type: REFRESHED });
 }
 
-function refreshSession() {
+function refreshSession(hasActivation) {
   if (pendingRefresh) return pendingRefresh;
 
   // Without transient user activation the popup would be blocked, so flag the
   // store instead and let the UI offer a button that calls
   // refreshSessionFromGesture().
-  if (!navigator.userActivation?.isActive) {
+  if (!hasActivation) {
     setExpired(true);
     return Promise.resolve(false);
   }
@@ -125,14 +125,15 @@ function refreshSession() {
 // the refresh popup opens with user activation. Resolves true once the session
 // is renewed, false if the popup was blocked or renewal timed out.
 export function refreshSessionFromGesture() {
-  return refreshSession();
+  const activation = navigator.userActivation;
+  return refreshSession(activation === undefined || activation.isActive);
 }
 
 // Call when an API request fails authentication (401 or opaqueredirect).
 // Renews immediately when the failure follows a user gesture, otherwise flags
 // the sessionExpired store so the UI can prompt. Resolves true once renewed.
 export function handleAuthFailure() {
-  return refreshSession();
+  return refreshSession(navigator.userActivation?.isActive === true);
 }
 
 async function checkSession() {
