@@ -11,14 +11,13 @@ permissions:
   pull-requests: write
   issues: write
   id-token: write
+  actions: read
 
 jobs:
   claude-review:
     name: Claude Code Review
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
