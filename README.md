@@ -7,7 +7,7 @@ Shared server and browser utilities for AgileData SvelteKit applications.
 Pin to a git tag:
 
 ```json
-"@agiledata/shared": "github:agiledata-cloud/agiledata-shared#v1.0.0"
+"@agiledata/shared": "github:agiledata-cloud/agiledata-shared#v1.0.9"
 ```
 
 Run `npm install` after updating the tag to pull in a new version.
@@ -16,7 +16,7 @@ Run `npm install` after updating the tag to pull in a new version.
 
 ### `@agiledata/shared/server/handle`
 
-SvelteKit `handle` hook. Reads the IAP JWT on each request to populate `event.locals` with the user email and Firestore startup cache data. Also removes the `Link` response header.
+SvelteKit `handle` hook. Reads the IAP JWT on each request to populate `event.locals` with the user email and Firestore startup cache data (entries older than 12 hours are ignored). On the response it removes the `Link` header and sets `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Resource-Policy: same-origin`.
 
 ```js
 // src/hooks.server.js
@@ -25,10 +25,18 @@ export { handle } from '@agiledata/shared/server/handle';
 
 ### `@agiledata/shared/server/firestoreClient`
 
-Lazy singleton Firestore client.
+Lazy singleton Firestore client for the `user-cache` database. Set `PROJECT_ID` in the environment; without it the client falls back to the Application Default Credentials project and logs a warning.
 
 ```js
 import { getDb, CACHE_COLLECTION } from '@agiledata/shared/server/firestoreClient';
+```
+
+### `@agiledata/shared/server/productsCache`
+
+Reads and writes the shared product catalogue document in Firestore.
+
+```js
+import { writeProductsCache, readProductsCache } from '@agiledata/shared/server/productsCache';
 ```
 
 ### `@agiledata/shared/server/iapAuth`
@@ -92,13 +100,13 @@ Run the unit tests with `npm test` (Node 22+).
 
 ## Releasing a fix
 
-1. Commit and tag: `git tag v1.x.x && git push origin v1.x.x`
-2. In each consuming repo, update `package.json` to the new tag and run `npm install`.
+1. Bump `version` in `package.json` and commit.
+2. Tag that commit: `git tag v1.x.x && git push origin v1.x.x`
+3. In each consuming repo, update `package.json` to the new tag and run `npm install`.
 
 ## Peer dependencies
-<!-- no-op: test commit for PR approval review audit -->
 
 | Package | Required version |
 |---|---|
 | `@google-cloud/firestore` | `>=8` |
-| `@sveltejs/kit` | `>=2` |
+| `@sveltejs/kit` | `>=1` |
