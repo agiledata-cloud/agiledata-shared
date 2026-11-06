@@ -276,7 +276,7 @@ describe('with user activation', () => {
 
     window.dispatchEvent(
       new MessageEvent('message', {
-        origin: 'https://identity-dot-agiledata-core-prd.appspot.com',
+        origin: 'https://identity.example.com',
         data: REFRESHED,
       }),
     );
