@@ -7,7 +7,7 @@ Shared server and browser utilities for AgileData SvelteKit applications.
 Pin to a git tag:
 
 ```json
-"@agiledata/shared": "github:agiledata-cloud/agiledata-shared#v1.0.0"
+"@agiledata/shared": "github:agiledata-cloud/agiledata-shared#v1.0.9"
 ```
 
 Run `npm install` after updating the tag to pull in a new version.
@@ -16,7 +16,7 @@ Run `npm install` after updating the tag to pull in a new version.
 
 ### `@agiledata/shared/server/handle`
 
-SvelteKit `handle` hook. Reads the IAP JWT on each request to populate `event.locals` with the user email and Firestore startup cache data. Also removes the `Link` response header.
+SvelteKit `handle` hook. Reads the IAP JWT on each request to populate `event.locals` with the user email and Firestore startup cache data (entries older than 12 hours are ignored). On the response it removes the `Link` header and sets `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Resource-Policy: same-origin`.
 
 ```js
 // src/hooks.server.js
@@ -25,10 +25,18 @@ export { handle } from '@agiledata/shared/server/handle';
 
 ### `@agiledata/shared/server/firestoreClient`
 
-Lazy singleton Firestore client.
+Lazy singleton Firestore client for the `user-cache` database. Set `PROJECT_ID` in the environment; without it the client falls back to the Application Default Credentials project and logs a warning.
 
 ```js
 import { getDb, CACHE_COLLECTION } from '@agiledata/shared/server/firestoreClient';
+```
+
+### `@agiledata/shared/server/productsCache`
+
+Reads and writes the shared product catalogue document in Firestore.
+
+```js
+import { writeProductsCache, readProductsCache } from '@agiledata/shared/server/productsCache';
 ```
 
 ### `@agiledata/shared/server/iapAuth`
@@ -69,15 +77,40 @@ if (browser) {
 }
 ```
 
+An expired IAP session is renewed in a `/?gcp-iap-mode=DO_SESSION_REFRESH` popup. Browsers block popups opened without a user gesture, so `handleAuthFailure()`, the fetch wrapper and the background checks only open the popup while `navigator.userActivation.isActive` is `true`; `refreshSessionFromGesture()` also opens it when the browser does not support `navigator.userActivation`. Otherwise the module sets `sessionExpired` to `true` and the UI should offer a button that calls `refreshSessionFromGesture()` synchronously in its click handler:
+
+```js
+import {
+  refreshSessionFromGesture,
+  handleAuthFailure,
+} from '@agiledata/shared/browser/sessionCheck';
+
+// "Continue session" button; resolves true once renewed, false if the popup
+// was blocked or renewal timed out (fall back to a reload).
+const renewed = await refreshSessionFromGesture();
+
+// API layer, on a 401 or opaqueredirect response: renews at once after a
+// click, otherwise flags sessionExpired for the prompt.
+handleAuthFailure();
+```
+
+Renewal succeeds when the tenant landing page posts `{ type: 'iap-session-refreshed' }` on `BroadcastChannel('agiledata-iap-session')`, or when `/internal/session-check` passes while the popup is pending (probed every second, and once more at the 30 s timeout). `window.opener` is not relied on: `Cross-Origin-Opener-Policy: same-origin` severs it on the cross-site hop to the sign-in page. On success `sessionExpired` is set back to `false` and the renewal is broadcast so every open tab clears.
+
+Run the unit tests with `npm test` (Node 22+).
+
+## Contributing
+
+`main` is the only long-lived branch and it is protected. Open a PR from a feature branch into `main`. The CI checks (unit tests, `npm audit`, secret scan, export integrity) and an approving review are required before merge. Review guidance lives in [CLAUDE.md](CLAUDE.md).
+
 ## Releasing a fix
 
-1. Commit and tag: `git tag v1.x.x && git push origin v1.x.x`
-2. In each consuming repo, update `package.json` to the new tag and run `npm install`.
+1. Bump `version` in `package.json` in a PR and merge it into `main`.
+2. Tag that PR's merge commit on `main`, by its SHA (not whatever is newest on `main`): `git fetch origin`, then `git tag v1.x.x <merge-sha> && git push origin v1.x.x`
+3. In each consuming repo, update `package.json` to the new tag and run `npm install`.
 
 ## Peer dependencies
-<!-- no-op: test commit for PR approval review audit -->
 
 | Package | Required version |
 |---|---|
 | `@google-cloud/firestore` | `>=8` |
-| `@sveltejs/kit` | `>=2` |
+| `@sveltejs/kit` | `>=1` |

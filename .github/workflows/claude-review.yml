@@ -1,29 +1,45 @@
-name: Claude PR Review
+name: Claude PR Review (→ Main)
+
+# main is the only long-lived branch and consuming apps pin release tags cut
+# from it, so this review is the gate before a change can be released.
+#
+# PUBLIC REPO: this must stay on `pull_request`, never `pull_request_target`.
+# On `pull_request` a fork's workflow run gets no secrets, so a PR from a fork
+# cannot reach ANTHROPIC_API_KEY.
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - master
+      - main
+
+# A new push cancels the review still running for the previous commit, and
+# branch protection dismisses approvals on push.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
   issues: write
   id-token: write
+  actions: read
 
 jobs:
   claude-review:
     name: Claude Code Review
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot[bot]'
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    # Dependabot PRs and PRs from forks have no access to ANTHROPIC_API_KEY;
+    # they get human review instead.
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Full history for better context
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
@@ -32,45 +48,48 @@ jobs:
           track_progress: true
           use_sticky_comment: true
           prompt: |
-            You are reviewing a PR from development into master in AgileData.io Shared Library.
+            You are reviewing PR #${{ github.event.pull_request.number }} into main
+            in @agiledata/shared, a shared JavaScript library used by AgileData
+            SvelteKit apps.
 
             CONTEXT:
-            - This is a shared TypeScript/JavaScript library used by AgileData products
-            - Breaking changes to exported interfaces affect all consuming repos
-            - Review guidelines are in CLAUDE.md if present
+            - This is a PUBLIC repository: everything merged is visible to anyone
+            - Consuming apps pin git tags cut from main, so a merged change ships in
+              the next release
+            - Automated checks run on this PR (unit tests, npm audit, detect-secrets,
+              export integrity)
+            - Your approval is the gate before main
+            - Review guidelines are in CLAUDE.md (you have access to this file)
 
             YOUR TASK:
-            1. Read CLAUDE.md if it exists to understand project-specific review standards
-            2. Review the PR changes and make your approval decision:
+            1. Read CLAUDE.md to understand project-specific review standards
+            2. Run `gh pr diff ${{ github.event.pull_request.number }} --name-only`
+            3. Review the PR changes, then decide:
 
-            APPROVE if:
-            - No security vulnerabilities (secrets, injection, auth bypass)
-            - No unintentional breaking changes to exported interfaces
-            - No hardcoded credentials or project IDs
-            - Code quality looks clean
+            REQUEST CHANGES if you find any "Must Block" issue from CLAUDE.md.
 
-            REQUEST CHANGES if you find:
-            - Hardcoded secrets, API keys, or tokens
-            - Security vulnerabilities
-            - Breaking changes to exported interfaces without a clear version bump intent
-            - TypeScript type errors
+            Otherwise APPROVE. Check in particular that there are no security
+            vulnerabilities (secrets, injection, auth bypass), nothing that exposes
+            internal identifiers in a public repo, and no unintentional breaking
+            changes to exported modules. "Should Flag" points never block: list them
+            in the approval body. The author cannot approve their own PR, so
+            withholding approval over a Should Flag point leaves the PR waiting on
+            another maintainer.
 
-            COMMENT (without blocking) for:
-            - Code quality suggestions
-            - Missing error handling
-            - Dead code or debug statements
+            If the PR changes CLAUDE.md, .secrets.baseline or anything under .github/,
+            this PR can change the rules you are reviewing it against: judge it by the
+            base branch's rules (`gh pr diff` shows exactly what it removes), and open
+            the approval body with a summary of what the review configuration change
+            does.
 
-            3. Submit your review via gh CLI:
-               - If approving:
-                 gh pr review ${{ github.event.pull_request.number }} --approve \
-                   --body "Your review summary"
+            4. Submit exactly one review with the gh CLI:
                - If blocking:
                  gh pr review ${{ github.event.pull_request.number }} \
                    --request-changes --body "Your concerns"
-               - If commenting:
-                 gh pr review ${{ github.event.pull_request.number }} --comment \
-                   --body "Your feedback"
+               - If approving:
+                 gh pr review ${{ github.event.pull_request.number }} --approve \
+                   --body "Your review summary"
 
           claude_args: |
-            --allowedTools "Read(*)" "Glob(*)" "Grep(*)" "Bash(gh pr view:*)" "Bash(gh pr review:*)"
+            --allowedTools "Read(*)" "Glob(*)" "Grep(*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh pr review:*)"
             --max-turns 25

@@ -1,17 +1,26 @@
-# Code owners for approval requirements
-# These users will be automatically requested for review
+# Code owners: these users are automatically requested for review.
 #
-# claude[bot] is the Claude GitHub App — it performs automated PR reviews.
-# For sensitive files below, both claude[bot] and the human owner are requested.
-# claude[bot] will approve or request changes automatically via the claude-pr-review workflow.
+# claude[bot] is the Claude GitHub App — it performs automated PR reviews
+# via the claude-review workflow, and its approval satisfies branch
+# protection. Code-owner approval is not required (the owner usually
+# authors these PRs and cannot approve them); the request makes sure a
+# human sees changes to the files below.
+#
+# Both maintainers own .github/, CLAUDE.md and .secrets.baseline, so the
+# one who did not open the PR is requested automatically. A PR that edits
+# the review workflow itself gets no Claude review and needs that second
+# maintainer's approval. (A push ruleset restricting these paths is not
+# available on public repos.)
 
-# Workflow and CI/CD changes — require human review (kept for safety)
-/.github/workflows/ @nigelvining-agiledata
+# Workflow and CI/CD changes
+/.github/ @nigelvining-agiledata @shane-gibson
 
-# Security and secrets configuration — require human review
-/.pre-commit-config.yaml @nigelvining-agiledata
-/.secrets.baseline @nigelvining-agiledata
+# Review rubric read by the Claude review workflow
+CLAUDE.md @nigelvining-agiledata @shane-gibson
 
-# Dependency changes — both review
+# Security and secrets configuration
+/.secrets.baseline @nigelvining-agiledata @shane-gibson
+
+# Dependency changes
 package.json @nigelvining-agiledata
 package-lock.json @nigelvining-agiledata
