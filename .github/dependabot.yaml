@@ -1,4 +1,5 @@
 version: 2
+# Review requests for Dependabot PRs come from .github/CODEOWNERS.
 updates:
   # npm dependencies
   - package-ecosystem: 'npm'
@@ -9,8 +10,6 @@ updates:
       time: '09:00'
       timezone: 'Pacific/Auckland'
     open-pull-requests-limit: 5
-    reviewers:
-      - 'nigelvining-agiledata'
     labels:
       - 'dependencies'
       - 'javascript'
@@ -38,8 +37,6 @@ updates:
       time: '09:00'
       timezone: 'Pacific/Auckland'
     open-pull-requests-limit: 3
-    reviewers:
-      - 'nigelvining-agiledata'
     labels:
       - 'dependencies'
       - 'github-actions'
