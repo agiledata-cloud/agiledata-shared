@@ -98,10 +98,14 @@ Renewal succeeds when the tenant landing page posts `{ type: 'iap-session-refres
 
 Run the unit tests with `npm test` (Node 22+).
 
+## Contributing
+
+`main` is the only long-lived branch and it is protected. Open a PR from a feature branch into `main`. The CI checks (unit tests, `npm audit`, secret scan, export integrity) and an approving review are required before merge. Review guidance lives in [CLAUDE.md](CLAUDE.md).
+
 ## Releasing a fix
 
-1. Bump `version` in `package.json` and commit.
-2. Tag that commit: `git tag v1.x.x && git push origin v1.x.x`
+1. Bump `version` in `package.json` in a PR and merge it into `main`.
+2. Tag that PR's merge commit on `main`, by its SHA (not whatever is newest on `main`): `git fetch origin`, then `git tag v1.x.x <merge-sha> && git push origin v1.x.x`
 3. In each consuming repo, update `package.json` to the new tag and run `npm install`.
 
 ## Peer dependencies

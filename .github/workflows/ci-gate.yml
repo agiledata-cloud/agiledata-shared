@@ -1,16 +1,40 @@
 name: CI Gate
 
+# main is the only long-lived branch: every change arrives by PR from a
+# feature branch, and these jobs are its required status checks.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - master
+      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
   dependency-audit:
     name: Dependency Vulnerability Audit
     runs-on: ubuntu-latest
